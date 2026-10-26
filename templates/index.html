@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Test Assembly</title>
+<style>
+  :root{
+    --bg:#12151b;
+    --panel:#1a1f28;
+    --panel-2:#1f2530;
+    --rail:#2a3140;
+    --text:#e6e9ef;
+    --muted:#7c8493;
+    --locate:#5eead4;
+    --locate-dim:#2d3f3d;
+    --act:#f2b155;
+    --act-dim:#3f3626;
+    --control:#a78bfa;
+    --control-dim:#332d47;
+    --danger:#f26565;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,'Segoe UI',Roboto,system-ui,sans-serif;
+    display:flex;
+    flex-direction:column;
+    height:100vh;
+    overflow:hidden;
+  }
+  header{
+    padding:14px 20px;
+    border-bottom:1px solid var(--rail);
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    flex-shrink:0;
+    position:relative;
+  }
+  header h1{
+    font-family:ui-monospace,'Cascadia Code','Consolas','SF Mono',Menlo,monospace;
+    font-size:15px;
+    font-weight:700;
+    margin:0;
+    letter-spacing:0.02em;
+  }
+  header .sub{
+    font-size:12px;
+    color:var(--muted);
+  }
+  .title-control{
+    margin-left:auto;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .title-control input{
+    font-family:ui-monospace,'Cascadia Code','Consolas','SF Mono',Menlo,monospace;
+    font-size:12px;
+    font-weight:600;
+    background:var(--panel-2);
+    border:1px solid var(--rail);
+    border-radius:4px;
+    color:var(--text);
+    padding:4px 8px;
+    width:150px;
+  }
+  .title-control input:focus{
+    outline:none;
+    border-color:var(--locate);
+  }
+  .tracker-control{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-left:70px;
+  }
+  .tracker-control label{
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .tracker-control input{
+    font-family:ui-monospace,'Cascadia Code','Consolas','SF Mono',Menlo,monospace;
+    font-size:11px;
+    background:var(--panel-2);
+    border:1px solid var(--rail);
+    border-radius:4px;
+    color:var(--text);
+    padding:3px 5px;
+  }
+  #trackerBtn.active{border-color:var(--locate);color:var(--locate);}
+  .tracker-readout{
+    font-family:ui-monospace,'Cascadia Code','Consolas','SF Mono',Menlo,monospace;
+    font-size:12px;
+    color:var(--locate);
+    width:150px;
+    flex-shrink:0;
+    font-variant-numeric:tabular-nums;
+  }
+  .settings-bar{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    padding:8px 20px;
+    border-bottom:1px solid var(--rail);
+    background:var(--panel);
+    flex-shrink:0;
+  }
+  .toggle-wrap{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    cursor:pointer;
+    user-select:none;
+  }
+  .toggle-wrap input{cursor:pointer;accent-color:var(--locate);}
+  .bounds-fields{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .bounds-fields.disabled{opacity:0.35;pointer-events:none;}
+  .bounds-fields label{
+    display:flex;
+    align-items:center;
+    gap:4px;
+  }
+  .bounds-fields input{
+    font-family:ui-monospace,'Cascadia Code','Consolas','SF Mono',Menlo,monospace;
+    font-size:11px;
+    background:var(--panel-2);
+    border:1px solid var(--rail);
+    border-radius:4px;
+    color:var(--text);
+    padding:3px 6px;
+    width:64px;
+  }
+  .layout{
+    display:grid;
+    grid-template-columns:210px 1fr 340px;
+    flex:1;
+    min-height:0;
+  }
+  /* ---------- palette ---------- */
+  .palette{
+    border-right:1px solid var(--rail);
+    padding:14px 10px;
+    overflow-y:auto;
+  }
+  .cat-label{
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    color:var(--muted);
+    margin:14px 6px 6px;
+  }
+  .cat-label:first-child{margin-top:0;}
+  .palette-block{
+    font-family:ui-monospace,'Cascadia Code','Consolas','SF Mono',Menlo,monospace;
+    font-size:12px;
+    padding:9px 10px;
+    border-radius:6px;
+    margin-bottom:6px;
+    cursor:grab;
+    border-left:3px solid;
+    user-select:none;
+    transition:transform .1s ease;
+  }
+  .palette-block:active{cursor:grabbing;}
+  .palette-block:hover{transform:translateX(2px);}
+  .pb-locate{background:var(--locate-dim);border-color:var(--locate);color:var(--locate);}
+  .pb-act{background:var(--act-dim);border-color:var(--act);color:var(--act);}
+  .pb-control{background:var(--control-dim);border-color:var(--control);color:var(--control);}
+
+  /* ---------- canvas ---------- */
+  .canvas-wrap{
+    position:relative;
+    overflow-y:auto;
+    padding:24px;
+  }
+  .empty-hint{
+    color:var(--muted);
+    font-size:13px;
+    font-family:ui-monospace,'Cascadia Code','Consolas','SF Mono',Menlo,monospace;
+    padding:40px 10px;
+    border:1px dashed var(--rail);
+    border-radius:8px;
+    text-align:center;
+  }
+  .seq-block{
+    position:relative;
+    background:var(--panel);
+    border:1px solid var(--rail);
+    border-left:3px solid;
+    border-radius:7px;
+    padding:10px 12px;
+    margin-bottom:10px;
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+  }
+  .seq-block.dragging{opacity:0.4;}
+  .seq-block.locate{border-left-color:var(--locate);}
+  .seq-block.act{border-left-color:var(--act);}
+  .seq-block.control{border-left-color:var(--control);}
+  .seq-index{
+    font-family:ui-monospace,'Cascadia Code','Consolas','SF Mono',Menlo,monospace;
+    font-size:11px;
+    color:var(--muted);
+    width:18px;
+    padding-top:2px;
+    flex-shrink:0;
+  }
+  .seq-body{flex:1;min-width:0;}
+  .seq-title{
+    font-family:ui-monospace,'Cascadia Code','Consolas','SF Mono',Menlo,monospace;
+    font-size:13px;
+    font-weight:600;
+    margin-bottom:6px;
+  }
+  .locate .seq-title{color:var(--locate);}
+  .act .seq-title{color:var(--act);}
+  .control .seq-title{color:var(--control);}
+  .seq-fields{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+  .seq-fields label{
+    font-size:10px;
+    color:var(--muted);
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+  }
+  .seq-fields input, .seq-fields select{
+    font-family:ui-monospace,'Cascadia Code','Consolas','SF Mono',Menlo,monospace;
+    font-size:11px;
+    background:var(--panel-2);
+    border:1px solid var(--rail);
+    border-radius:4px;
+    color:var(--text);
+    padding:4px 6px;
+    width:74px;
+  }
+  .seq-fields input.wide{width:150px;}
+  .seq-fields input[type="checkbox"]{
+    width:16px;
+    height:16px;
+    padding:0;
+    cursor:pointer;
+    accent-color:var(--act);
+  }
+  .seq-actions{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    flex-shrink:0;
+  }
+  .icon-btn{
+    background:none;
+    border:none;
+    color:var(--muted);
+    cursor:pointer;
+    font-size:13px;
+    padding:2px 4px;
+    border-radius:4px;
+    line-height:1;
+  }
+  .icon-btn:hover{background:var(--panel-2);color:var(--text);}
+  .icon-btn.del:hover{color:var(--danger);}
+
+  /* ---------- output ---------- */
+  .output{
+    border-left:1px solid var(--rail);
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+  }
+  .output-header{
+    padding:12px 16px;
+    border-bottom:1px solid var(--rail);
+    font-family:ui-monospace,'Cascadia Code','Consolas','SF Mono',Menlo,monospace;
+    font-size:11px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-shrink:0;
+  }
+  .copy-btn{
+    background:var(--panel-2);
+    border:1px solid var(--rail);
+    color:var(--text);
+    font-family:-apple-system,'Segoe UI',Roboto,system-ui,sans-serif;
+    font-size:11px;
+    padding:4px 9px;
+    border-radius:5px;
+    cursor:pointer;
+  }
+  .copy-btn:hover{border-color:var(--locate);color:var(--locate);}
+  pre#jsonOut{
+    flex:0 1 40%;
+    margin:0;
+    padding:16px;
+    overflow:auto;
+    font-family:ui-monospace,'Cascadia Code','Consolas','SF Mono',Menlo,monospace;
+    font-size:11.5px;
+    line-height:1.6;
+    color:#c9d4e0;
+    white-space:pre-wrap;
+    word-break:break-word;
+  }
+  .tok-key{color:var(--locate);}
+  .tok-str{color:var(--act);}
+  .tok-num{color:var(--control);}
+  .tok-punc{color:var(--muted);}
+
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--rail);border-radius:4px;}
+
+  .status-line{
+    padding:8px 16px;
+    font-family:ui-monospace,'Cascadia Code','Consolas','SF Mono',Menlo,monospace;
+    font-size:11px;
+    border-bottom:1px solid var(--rail);
+    flex-shrink:0;
+  }
+  .status-line.running{color:var(--control);}
+  .status-line.passed{color:var(--locate);}
+  .status-line.failed, .status-line.error{color:var(--danger);}
+  #runLog{
+    flex:1;
+    margin:0;
+    padding:12px 16px;
+    overflow:auto;
+    font-family:ui-monospace,'Cascadia Code','Consolas','SF Mono',Menlo,monospace;
+    font-size:11px;
+    line-height:1.6;
+    color:#c9d4e0;
+    white-space:pre-wrap;
+  }
+  #runBtn:disabled{opacity:0.5;cursor:default;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>&#9679; Python Atuomated Testing</h1>
+  <span class="sub">drag blocks into the canvas to build a test sequence</span>
+  <div class="tracker-control">
+    <label class="sub">mouse tracker <input id="trackerInterval" type="number" value="1" min="0.1" step="0.1" style="width:50px;"> s</label>
+    <button class="copy-btn" id="trackerBtn">Start</button>
+    <span id="trackerReadout" class="tracker-readout"></span>
+  </div>
+  <div class="title-control">
+    <span class="sub">test name</span>
+    <input id="scriptTitle" type="text" value="untitled_test">
+  </div>
+</header>
+
+<div class="settings-bar">
+  <label class="toggle-wrap">
+    <input type="checkbox" id="boundsEnabled">
+    <span class="sub">limit search to bounds</span>
+  </label>
+  <div class="bounds-fields" id="boundsFields">
+    <label class="sub">left:<input id="boundsLeft" type="number" value="0"></label>
+    <label class="sub">top:<input id="boundsTop" type="number" value="0"></label>
+    <label class="sub">width:<input id="boundsWidth" type="number" value="1920"></label>
+    <label class="sub">height:<input id="boundsHeight" type="number" value="1080"></label>
+    <button class="copy-btn" id="useFullScreenBtn" title="fill in this screen's full size">Use full screen</button>
+  </div>
+  <label class="toggle-wrap" style="margin-left:auto;">
+    <input type="checkbox" id="continueOnFailure">
+    <span class="sub">continue on failure</span>
+  </label>
+</div>
+
+<div class="layout">
+
+  <!-- PALETTE -->
+  <div class="palette" id="palette">
+    <div class="cat-label">Locate</div>
+    <div class="palette-block pb-locate" draggable="true" data-type="find_button">Find Image</div>
+    <div class="palette-block pb-locate" draggable="true" data-type="find_text">Find Text</div>
+
+    <div class="cat-label">Act</div>
+    <div class="palette-block pb-act" draggable="true" data-type="click">Click</div>
+    <div class="palette-block pb-act" draggable="true" data-type="move">Move Mouse</div>
+    <div class="palette-block pb-act" draggable="true" data-type="type_text">Type Text</div>
+    <div class="palette-block pb-act" draggable="true" data-type="drag">Drag</div>
+    <div class="palette-block pb-act" draggable="true" data-type="press_key">Press Key</div>
+    <div class="palette-block pb-act" draggable="true" data-type="wait">Wait</div>
+
+    <div class="cat-label">Control</div>
+    <div class="palette-block pb-control" draggable="true" data-type="repeat">Repeat</div>
+  </div>
+
+  <!-- CANVAS -->
+  <div class="canvas-wrap" id="canvasWrap">
+    <div id="canvas"></div>
+    <div class="empty-hint" id="emptyHint">Drag a block here to start</div>
+  </div>
+
+  <!-- OUTPUT -->
+  <div class="output">
+    <div class="output-header">
+      <span>compiled test.json</span>
+      <div style="display:flex;gap:6px;">
+        <button class="copy-btn" id="importBtn">Import</button>
+        <button class="copy-btn" id="exportBtn">Export</button>
+        <button class="copy-btn" id="copyBtn">Copy</button>
+      </div>
+    </div>
+    <input type="file" id="importFile" accept="application/json" style="display:none">
+    <pre id="jsonOut"></pre>
+
+    <div class="output-header" style="border-top:1px solid var(--rail);">
+      <span>run</span>
+      <button class="copy-btn" id="runBtn">&#9654; Run Test</button>
+    </div>
+    <div id="statusLine" class="status-line"></div>
+    <pre id="runLog"></pre>
+  </div>
+
+</div>
+
+<script>
+const BLOCK_DEFS = {
+  find_button: {
+    label: "Find Image",
+    cat: "locate",
+    fields: [
+      {key:"template", label:"template img", type:"text", default:"save_icon.png", wide:true},
+      {key:"search", label:"search", type:"select", options:["spiral_cw","spiral_ccw","raster"], default:"spiral_cw"},
+      {key:"start_x", label:"start x", type:"number", default:640},
+      {key:"start_y", label:"start y", type:"number", default:360},
+      {key:"radius", label:"radius", type:"number", default:400},
+      {key:"comments", label:"comments", type:"text", default:"", wide:true}
+    ]
+  },
+  find_text: {
+    label: "Find Text",
+    cat: "locate",
+    fields: [
+      {key:"text", label:"text", type:"text", default:"Submit", wide:true},
+      {key:"comments", label:"comments", type:"text", default:"", wide:true}
+    ]
+  },
+  click: {
+    label: "Click (last found / coords)",
+    cat: "act",
+    fields: [
+      {key:"target", label:"target", type:"select", options:["last_found","coords"], default:"last_found"},
+      {key:"x", label:"x", type:"number", default:0},
+      {key:"y", label:"y", type:"number", default:0},
+      {key:"button", label:"button", type:"select", options:["left","right"], default:"left"},
+      {key:"comments", label:"comments", type:"text", default:"", wide:true}
+    ]
+  },
+  move: {
+    label: "Move Mouse",
+    cat: "act",
+    fields: [
+      {key:"x", label:"x", type:"number", default:100},
+      {key:"y", label:"y", type:"number", default:100},
+      {key:"comments", label:"comments", type:"text", default:"", wide:true}
+    ]
+  },
+  type_text: {
+    label: "Type Text",
+    cat: "act",
+    fields: [
+      {key:"target", label:"into", type:"select", options:["last_found","focused_field"], default:"last_found"},
+      {key:"text", label:"text", type:"text", default:"hello world", wide:true},
+      {key:"comments", label:"comments", type:"text", default:"", wide:true}
+    ]
+  },
+  drag: {
+    label: "Drag",
+    cat: "act",
+    fields: [
+      {key:"x1", label:"from x", type:"number", default:0},
+      {key:"y1", label:"from y", type:"number", default:0},
+      {key:"x2", label:"to x", type:"number", default:0},
+      {key:"y2", label:"to y", type:"number", default:0},
+      {key:"click_first", label:"click first", type:"checkbox", default:false},
+      {key:"comments", label:"comments", type:"text", default:"", wide:true}
+    ]
+  },
+  press_key: {
+    label: "Press Key",
+    cat: "act",
+    fields: [
+      {key:"key", label:"key", type:"select", options:["delete","backspace","enter","tab","escape"], default:"delete"},
+      {key:"count", label:"times", type:"number", default:1},
+      {key:"comments", label:"comments", type:"text", default:"", wide:true}
+    ]
+  },
+  wait: {
+    label: "Wait",
+    cat: "act",
+    fields: [
+      {key:"ms", label:"ms", type:"number", default:500},
+      {key:"comments", label:"comments", type:"text", default:"", wide:true}
+    ]
+  },
+  repeat: {
+    label: "Repeat next block",
+    cat: "control",
+    fields: [
+      {key:"count", label:"times", type:"number", default:3},
+      {key:"comments", label:"comments", type:"text", default:"", wide:true}
+    ]
+  },
+};
+
+let sequence = [];
+let idCounter = 0;
+let dragSrc = null; // {fromPalette: bool, type, id}
+let scriptName = 'untitled_test';
+
+const canvas = document.getElementById('canvas');
+const emptyHint = document.getElementById('emptyHint');
+const jsonOut = document.getElementById('jsonOut');
+
+function buildScript(){
+  const script = {
+    name: scriptName,
+    steps: sequence.map(b => ({type: b.type, ...b.data}))
+  };
+
+  if (document.getElementById('continueOnFailure').checked) {
+    script.continue_on_failure = true;
+  }
+
+  if (document.getElementById('boundsEnabled').checked) {
+    script.bounds = {
+      left: Number(document.getElementById('boundsLeft').value) || 0,
+      top: Number(document.getElementById('boundsTop').value) || 0,
+      width: Number(document.getElementById('boundsWidth').value) || 0,
+      height: Number(document.getElementById('boundsHeight').value) || 0,
+    };
+  }
+
+  return script;
+}
+
+function makeBlockInstance(type){
+  const def = BLOCK_DEFS[type];
+  const data = {};
+  def.fields.forEach(f => data[f.key] = f.default);
+  return {id: ++idCounter, type, data};
+}
+
+function render(){
+  canvas.innerHTML = '';
+  emptyHint.style.display = sequence.length ? 'none' : 'block';
+
+  sequence.forEach((block, idx) => {
+    const def = BLOCK_DEFS[block.type];
+    const el = document.createElement('div');
+    el.className = `seq-block ${def.cat}`;
+    el.draggable = true;
+    el.dataset.id = block.id;
+
+    const fieldsHtml = def.fields.map(f => {
+      const val = block.data[f.key];
+      if(f.type === 'select'){
+        const opts = f.options.map(o => `<option value="${o}" ${o===val?'selected':''}>${o}</option>`).join('');
+        return `<label>${f.label}<select data-key="${f.key}">${opts}</select></label>`;
+      }
+      if(f.type === 'checkbox'){
+        return `<label>${f.label}<input data-key="${f.key}" type="checkbox" ${val ? 'checked' : ''}></label>`;
+      }
+      const widthClass = f.wide ? 'wide' : '';
+      return `<label>${f.label}<input class="${widthClass}" data-key="${f.key}" type="${f.type}" value="${val}"></label>`;
+    }).join('');
+
+    el.innerHTML = `
+      <div class="seq-index">${idx+1}</div>
+      <div class="seq-body">
+        <div class="seq-title">${def.label}</div>
+        <div class="seq-fields">${fieldsHtml}</div>
+      </div>
+      <div class="seq-actions">
+        <button class="icon-btn del" title="delete">&times;</button>
+      </div>
+    `;
+
+    // field updates
+    el.querySelectorAll('[data-key]').forEach(inp => {
+      inp.addEventListener('input', () => {
+        block.data[inp.dataset.key] =
+          inp.type === 'checkbox' ? inp.checked :
+          inp.type === 'number' ? Number(inp.value) : inp.value;
+        renderOutput();
+      });
+    });
+
+    el.querySelector('.del').addEventListener('click', () => {
+      sequence = sequence.filter(b => b.id !== block.id);
+      render();
+    });
+
+    // reordering via drag within canvas
+    el.addEventListener('dragstart', (e) => {
+      dragSrc = {fromPalette:false, id: block.id};
+      el.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    el.addEventListener('dragend', () => el.classList.remove('dragging'));
+
+    canvas.appendChild(el);
+  });
+
+  renderOutput();
+}
+
+// palette drag start
+document.querySelectorAll('.palette-block').forEach(pb => {
+  pb.addEventListener('dragstart', (e) => {
+    dragSrc = {fromPalette:true, type: pb.dataset.type};
+    e.dataTransfer.effectAllowed = 'copy';
+  });
+});
+
+const canvasWrap = document.getElementById('canvasWrap');
+
+canvasWrap.addEventListener('dragover', (e) => {
+  e.preventDefault();
+});
+
+canvasWrap.addEventListener('drop', (e) => {
+  e.preventDefault();
+  if(!dragSrc) return;
+
+  const afterEl = getDragAfterElement(canvas, e.clientY);
+  const afterId = afterEl ? Number(afterEl.dataset.id) : null;
+
+  if(dragSrc.fromPalette){
+    const inst = makeBlockInstance(dragSrc.type);
+    insertAt(inst, afterId);
+  } else {
+    const idx = sequence.findIndex(b => b.id === dragSrc.id);
+    const [moved] = sequence.splice(idx, 1);
+    insertAt(moved, afterId);
+  }
+  dragSrc = null;
+  render();
+});
+
+function insertAt(inst, afterId){
+  if(afterId === null){
+    sequence.push(inst);
+    return;
+  }
+  const idx = sequence.findIndex(b => b.id === afterId);
+  sequence.splice(idx, 0, inst);
+}
+
+function getDragAfterElement(container, y){
+  const els = [...container.querySelectorAll('.seq-block:not(.dragging)')];
+  return els.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height/2;
+    if(offset < 0 && offset > closest.offset){
+      return {offset, element: child};
+    }
+    return closest;
+  }, {offset: -Infinity, element: null}).element;
+}
+
+function syntaxHighlight(json){
+  return json
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"([^"]+)":/g, '<span class="tok-key">"$1"</span><span class="tok-punc">:</span>')
+    .replace(/: "([^"]*)"/g, ': <span class="tok-str">"$1"</span>')
+    .replace(/: (-?\d+(\.\d+)?)/g, ': <span class="tok-num">$1</span>')
+    .replace(/: (true|false)/g, ': <span class="tok-num">$1</span>');
+}
+
+function renderOutput(){
+  const script = buildScript();
+  const json = JSON.stringify(script, null, 2);
+  jsonOut.innerHTML = syntaxHighlight(json);
+}
+
+document.getElementById('copyBtn').addEventListener('click', () => {
+  const script = buildScript();
+  navigator.clipboard.writeText(JSON.stringify(script, null, 2)).then(() => {
+    const btn = document.getElementById('copyBtn');
+    const orig = btn.textContent;
+    btn.textContent = 'Copied';
+    setTimeout(() => btn.textContent = orig, 1200);
+  });
+});
+
+// ---------- run / poll ----------
+const runBtn = document.getElementById('runBtn');
+const statusLine = document.getElementById('statusLine');
+const runLog = document.getElementById('runLog');
+let pollHandle = null;
+
+runBtn.addEventListener('click', async () => {
+  if (sequence.length === 0) return;
+  clearInterval(pollHandle);
+  runLog.textContent = '';
+  setStatus('running', 'starting…');
+  runBtn.disabled = true;
+
+  const script = buildScript();
+
+  try {
+    const res = await fetch('/api/run', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(script)
+    });
+    const {run_id, error} = await res.json();
+    if (error) { setStatus('error', error); runBtn.disabled = false; return; }
+    pollHandle = setInterval(() => pollStatus(run_id), 500);
+  } catch (e) {
+    setStatus('error', 'could not reach server — is app.py running?');
+    runBtn.disabled = false;
+  }
+});
+
+async function pollStatus(runId){
+  const res = await fetch(`/api/status/${runId}`);
+  const job = await res.json();
+  runLog.textContent = (job.log || []).join('\n');
+  runLog.scrollTop = runLog.scrollHeight;
+
+  if (job.status === 'running') {
+    setStatus('running', 'running…');
+  } else {
+    setStatus(job.status, job.status.toUpperCase());
+    clearInterval(pollHandle);
+    runBtn.disabled = false;
+  }
+}
+
+function setStatus(kind, text){
+  statusLine.className = `status-line ${kind}`;
+  statusLine.textContent = text;
+}
+
+// ---------- title ----------
+document.getElementById('scriptTitle').addEventListener('input', (e) => {
+  scriptName = e.target.value || 'untitled_test';
+  renderOutput();
+});
+
+// ---------- settings (bounds + continue on failure) ----------
+const boundsEnabled = document.getElementById('boundsEnabled');
+const boundsFields = document.getElementById('boundsFields');
+
+function syncBoundsEnabledState(){
+  boundsFields.classList.toggle('disabled', !boundsEnabled.checked);
+}
+
+['boundsEnabled','boundsLeft','boundsTop','boundsWidth','boundsHeight','continueOnFailure']
+  .forEach(id => document.getElementById(id).addEventListener('input', () => {
+    syncBoundsEnabledState();
+    renderOutput();
+  }));
+
+// Fills the bounds with the browser window's screen size. Note this is the
+// screen the BROWSER is on — if app.py is driving a different monitor, set
+// the numbers by hand instead.
+document.getElementById('useFullScreenBtn').addEventListener('click', () => {
+  document.getElementById('boundsLeft').value = 0;
+  document.getElementById('boundsTop').value = 0;
+  document.getElementById('boundsWidth').value = window.screen.width;
+  document.getElementById('boundsHeight').value = window.screen.height;
+  boundsEnabled.checked = true;
+  syncBoundsEnabledState();
+  renderOutput();
+});
+
+syncBoundsEnabledState();
+
+// ---------- import / export ----------
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const script = buildScript();
+  const blob = new Blob([JSON.stringify(script, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${scriptName || 'test'}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+const importFile = document.getElementById('importFile');
+document.getElementById('importBtn').addEventListener('click', () => importFile.click());
+
+importFile.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    let data;
+    try {
+      data = JSON.parse(reader.result);
+    } catch (err) {
+      alert('That file is not valid JSON.');
+      importFile.value = '';
+      return;
+    }
+    if (!data || !Array.isArray(data.steps)) {
+      alert('Expected a test script with a "steps" array.');
+      importFile.value = '';
+      return;
+    }
+
+    const skipped = [];
+    sequence = data.steps.map(step => {
+      const def = BLOCK_DEFS[step.type];
+      if (!def) {
+        skipped.push(step.type);
+        return null;
+      }
+      const blockData = {};
+      def.fields.forEach(f => {
+        blockData[f.key] = step.hasOwnProperty(f.key) ? step[f.key] : f.default;
+      });
+      return {id: ++idCounter, type: step.type, data: blockData};
+    }).filter(Boolean);
+
+    scriptName = data.name || 'untitled_test';
+    document.getElementById('scriptTitle').value = scriptName;
+
+    // restore script-level settings
+    document.getElementById('continueOnFailure').checked = !!data.continue_on_failure;
+    if (data.bounds) {
+      document.getElementById('boundsLeft').value = data.bounds.left ?? 0;
+      document.getElementById('boundsTop').value = data.bounds.top ?? 0;
+      document.getElementById('boundsWidth').value = data.bounds.width ?? 0;
+      document.getElementById('boundsHeight').value = data.bounds.height ?? 0;
+      boundsEnabled.checked = true;
+    } else {
+      boundsEnabled.checked = false;
+    }
+    syncBoundsEnabledState();
+
+    render();
+
+    if (skipped.length) {
+      alert(`Skipped ${skipped.length} step(s) with unknown block type(s): ${[...new Set(skipped)].join(', ')}`);
+    }
+    importFile.value = '';
+  };
+  reader.readAsText(file);
+});
+
+// ---------- mouse tracker ----------
+const trackerBtn = document.getElementById('trackerBtn');
+const trackerInterval = document.getElementById('trackerInterval');
+const trackerReadout = document.getElementById('trackerReadout');
+let trackerActive = false;
+let trackerPollHandle = null;
+
+trackerBtn.addEventListener('click', async () => {
+  if (!trackerActive) {
+    const res = await fetch('/api/mouse-tracker/start', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({interval_seconds: Number(trackerInterval.value) || 1})
+    });
+    if (res.ok) {
+      trackerActive = true;
+      trackerBtn.textContent = 'Stop';
+      trackerBtn.classList.add('active');
+      trackerPollHandle = setInterval(pollTrackerPosition, 200);
+    }
+  } else {
+    await fetch('/api/mouse-tracker/stop', {method: 'POST'});
+    trackerActive = false;
+    trackerBtn.textContent = 'Start';
+    trackerBtn.classList.remove('active');
+    clearInterval(trackerPollHandle);
+    trackerReadout.textContent = '';
+  }
+});
+
+async function pollTrackerPosition(){
+  const res = await fetch('/api/mouse-tracker/status');
+  const status = await res.json();
+  if (status.x !== null && status.y !== null) {
+    trackerReadout.textContent = `x: ${status.x}  y: ${status.y}`;
+  }
+}
+
+render();
+</script>
+
+</body>
+</html>
