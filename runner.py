@@ -15,6 +15,8 @@ Script shape:
 
 import traceback
 
+import pyautogui
+
 import actions
 import locators
 
@@ -77,10 +79,10 @@ def run_step(step, context, log):
         log.append(f"typed: {step['text']!r}")
 
     elif step_type == "drag":
-            click_first = step.get("click_first", False)
-            actions.drag(step["x1"], step["y1"], step["x2"], step["y2"], click_first=click_first)
-            prefix = "click + " if click_first else ""
-            log.append(f"{prefix}dragged {(step['x1'], step['y1'])} -> {(step['x2'], step['y2'])}")
+        click_first = step.get("click_first", False)
+        actions.drag(step["x1"], step["y1"], step["x2"], step["y2"], click_first=click_first)
+        prefix = "click + " if click_first else ""
+        log.append(f"{prefix}dragged {(step['x1'], step['y1'])} -> {(step['x2'], step['y2'])}")
 
     elif step_type == "press_key":
         count = step.get("count", 1)
@@ -136,6 +138,11 @@ def run_script(script, on_progress=None):
             return True
         except StepFailed as e:
             log.append(f"FAILED at step {index}: {e}")
+        except pyautogui.FailSafeException:
+            # The emergency stop must always win, even with continue-on-failure on.
+            log.append(f"ABORTED at step {index}: fail-safe triggered (mouse hit a screen corner)")
+            failed_steps.append(index)
+            return False
         except Exception:
             log.append(f"ERROR at step {index}:\n{traceback.format_exc()}")
         failed_steps.append(index)
